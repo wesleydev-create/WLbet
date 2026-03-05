@@ -1,32 +1,35 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Flame, TrendingUp, Zap } from "lucide-react"
-import { GameCard } from "./game-card"
+import { useEffect, useState } from "react";
+import { Flame, TrendingUp, Zap } from "lucide-react";
+import { GameCard } from "./game-card";
 
 interface Game {
-  id: number
-  title: string
-  thumbnail: string
-  publisher: string
-  game_url: string
+  id: number;
+  title: string;
+  thumbnail: string;
+  publisher: string;
+  game_url: string;
 }
 
 interface SectionProps {
-  title: string
-  icon: React.ReactNode
-  games: Game[]
+  title: string;
+  icon: React.ReactNode;
+  games: Game[];
 }
 
+// Componente de seção de jogos
 function GameSection({ title, icon, games }: SectionProps) {
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        {icon}
-        <h2 className="text-lg font-bold text-foreground">{title}</h2>
+    <section className="space-y-4">
+      {/* Cabeçalho da seção */}
+      <div className="flex items-center gap-3">
+        <div className="text-xl">{icon}</div>
+        <h2 className="text-lg md:text-xl font-bold text-foreground tracking-wide">{title}</h2>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      {/* Grid de jogos */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {games.map((game) => (
           <GameCard
             key={game.id}
@@ -38,75 +41,83 @@ function GameSection({ title, icon, games }: SectionProps) {
         ))}
       </div>
     </section>
-  )
+  );
 }
 
+// Componente principal de grid de jogos
 export function GameGrid() {
-  const [games, setGames] = useState<Game[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function fetchGames() {
       try {
-        const res = await fetch("/api/games")
+        const res = await fetch("/api/games");
+        if (!res.ok) throw new Error("Erro na resposta da API");
 
-        if (!res.ok) {
-          throw new Error("Erro na resposta da API")
-        }
-
-        const data = await res.json()
-        setGames(data)
+        const data = await res.json();
+        setGames(data);
       } catch (err) {
-        console.error("Erro ao buscar jogos:", err)
-        setError(true)
+        console.error("Erro ao buscar jogos:", err);
+        setError(true);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
-
-    fetchGames()
-  }, [])
+    fetchGames();
+  }, []);
 
   if (loading) {
     return (
-      <p className="text-center text-muted-foreground">
-        Carregando jogos...
-      </p>
-    )
+      <div className="space-y-8">
+        {[1, 2, 3].map((_, idx) => (
+          <div key={idx} className="animate-pulse space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 bg-zinc-700 rounded-full" />
+              <div className="h-5 w-24 bg-zinc-700 rounded" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-full h-32 bg-zinc-700 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <p className="text-center text-red-500">
-        Erro ao carregar jogos.
+      <p className="text-center text-red-500 font-semibold text-lg">
+        Erro ao carregar jogos. Tente novamente mais tarde.
       </p>
-    )
+    );
   }
 
-  const popular = games.slice(0, 6)
-  const trending = games.slice(6, 12)
-  const newest = games.slice(12, 18)
+  // Dividindo categorias
+  const popular = games.slice(0, 6);
+  const trending = games.slice(6, 12);
+  const newest = games.slice(12, 18);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <GameSection
         title="Popular"
-        icon={<Flame className="w-5 h-5 text-orange-500" />}
+        icon={<Flame className="w-5 h-5 text-orange-500 animate-pulse" />}
         games={popular}
       />
-
       <GameSection
         title="Em Alta"
-        icon={<TrendingUp className="w-5 h-5 text-green-500" />}
+        icon={<TrendingUp className="w-5 h-5 text-green-500 animate-pulse" />}
         games={trending}
       />
-
       <GameSection
         title="Novos Jogos"
-        icon={<Zap className="w-5 h-5 text-yellow-500" />}
+        icon={<Zap className="w-5 h-5 text-yellow-500 animate-pulse" />}
         games={newest}
       />
     </div>
-  )
+  );
 }

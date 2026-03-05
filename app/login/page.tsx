@@ -2,192 +2,143 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 
-export default function AuthPage() {
+interface AuthPageProps {
+  API_URL?: string;
+}
+
+export default function AuthPage({ API_URL = "http://192.168.0.9:8080/api/auth" }: AuthPageProps) {
   const router = useRouter();
+  const { setUser } = useUser();
 
-  // estado de login ou registro
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // dados do usuário
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [gender, setGender] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    cpf: "",
+    fullName: "",
+  });
 
-  const API_URL = "http://localhost:8080/api/auth";
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
 
-  // função que envia os dados
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // verificação de senha só no registro
-    if (isRegister && password !== confirmPassword) {
-      setError("As senhas não conferem 😢");
+    // Validação local de senha
+    if (isRegister && form.password !== form.confirmPassword) {
+      setError("As senhas não conferem ");
       setLoading(false);
       return;
     }
 
-    const endpoint = isRegister ? "/register" : "/login";
-
-    // preparando os dados para enviar
-    const bodyData = isRegister
-      ? { email, password, fullName, phone, birthDate, gender }
-      : { email, password };
-
     try {
-      const res = await fetch(`${API_URL}${endpoint}`, {
+      const endpoint = isRegister ? "register" : "login";
+
+      const body = isRegister
+        ? {
+            email: form.email,
+            password: form.password,
+            confirmPassword: form.confirmPassword,
+            cpf: form.cpf,
+            fullName: form.fullName,
+          }
+        : {
+            email: form.email,
+            password: form.password,
+          };
+
+      const res = await fetch(`${API_URL}/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyData),
+        body: JSON.stringify(body),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        setError(data.message || "Erro na autenticação 😵");
+        const data = await res.json().catch(() => null);
+        setError(data?.message || "Erro na autenticação ");
         setLoading(false);
         return;
       }
 
-      // salvando token (bem básico, inseguro)
-      document.cookie = `token=${data.token}; path=/`;
+      const data = await res.json();
+      const token = data.token;
 
-      // redirecionando
+      if (!token) {
+        setError("Token não recebido ");
+        setLoading(false);
+        return;
+      }
+
+      // Atualiza UserContext
+      setUser({ ...data.user, token });
+
+      // Salva token no cookie por 7 dias
+      document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+
+      // Redireciona para home
       router.push("/");
-    } catch (err) {
-      setError("Erro na requisição 😬");
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Erro na autenticação ");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-zinc-900 px-4">
       <div className="w-full max-w-md bg-zinc-800 p-6 rounded-xl shadow-md border border-zinc-700">
-        {/* título */}
         <h1 className="text-2xl font-bold text-yellow-400 text-center mb-2">WLBet</h1>
         <p className="text-center text-zinc-300 mb-4 text-sm">
-          {isRegister ? "Preencha seus dados para criar a conta" : "Faça login com seu email"}
+          {isRegister ? "Crie sua conta" : "Faça login com seu email"}
         </p>
 
-        {/* mensagem de erro */}
-        {error && (
-          <p className="text-red-500 mb-4 text-sm text-center">{error}</p>
-        )}
+        {error && <p className="text-red-500 mb-4 text-sm text-center">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* nome completo */}
           {isRegister && (
-            <div>
-              <label className="text-zinc-300 text-sm">Nome Completo</label>
-              <input
+            <>
+              <Input
+                label="Nome Completo"
+                name="fullName"
+                value={form.fullName}
+                onChange={handleChange}
+                required
+              />
+              <Input
+                label="CPF"
+                name="cpf"
                 type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-                placeholder="Ex: João Silva"
+                value={form.cpf}
+                onChange={handleChange}
                 required
               />
-            </div>
+            </>
           )}
 
-          {/* email */}
-          <div>
-            <label className="text-zinc-300 text-sm">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-              placeholder="email@exemplo.com"
-              required
-            />
-          </div>
+          <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} required />
+          <Input label="Senha" name="password" type="password" value={form.password} onChange={handleChange} required />
 
-          {/* senha */}
-          <div>
-            <label className="text-zinc-300 text-sm">Senha</label>
-            <input
+          {isRegister && (
+            <Input
+              label="Confirmar Senha"
+              name="confirmPassword"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-              placeholder="Sua senha"
+              value={form.confirmPassword}
+              onChange={handleChange}
               required
             />
-          </div>
-
-          {/* confirm senha */}
-          {isRegister && (
-            <div>
-              <label className="text-zinc-300 text-sm">Confirmar Senha</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-                placeholder="Repita a senha"
-                required
-              />
-            </div>
           )}
 
-          {/* telefone */}
-          {isRegister && (
-            <div>
-              <label className="text-zinc-300 text-sm">Telefone</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-                placeholder="(99) 99999-9999"
-              />
-            </div>
-          )}
-
-          {/* data de nascimento */}
-          {isRegister && (
-            <div>
-              <label className="text-zinc-300 text-sm">Data de Nascimento</label>
-              <input
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-                required
-              />
-            </div>
-          )}
-
-          {/* gênero */}
-          {isRegister && (
-            <div>
-              <label className="text-zinc-300 text-sm">Gênero</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
-                required
-              >
-                <option value="">Selecione</option>
-                <option value="male">Masculino</option>
-                <option value="female">Feminino</option>
-                <option value="other">Outro</option>
-                <option value="no-info">Prefiro não informar</option>
-              </select>
-            </div>
-          )}
-
-          {/* botão */}
           <button
             type="submit"
             disabled={loading}
@@ -197,24 +148,30 @@ export default function AuthPage() {
           </button>
         </form>
 
-        {/* link para alternar */}
         <p className="text-center text-zinc-300 mt-4 text-sm">
           {isRegister ? "Já tem conta?" : "Não tem conta?"}{" "}
-          <span
-            onClick={() => setIsRegister(!isRegister)}
-            className="text-yellow-400 cursor-pointer font-bold"
-          >
+          <span onClick={() => setIsRegister(!isRegister)} className="text-yellow-400 cursor-pointer font-bold">
             {isRegister ? "Entrar" : "Criar conta"}
           </span>
         </p>
-
-        {/* pequena dica extra */}
-        {isRegister && (
-          <p className="text-zinc-400 text-xs mt-2 text-center">
-            ⚠️ Seus dados devem ser reais para não ter problemas depois.
-          </p>
-        )}
       </div>
+    </div>
+  );
+}
+
+// Input reutilizável
+function Input({ label, name, type = "text", value, onChange, required }: any) {
+  return (
+    <div>
+      <label className="text-zinc-300 text-sm">{label}</label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="w-full mt-1 p-2 rounded bg-zinc-700 text-white border border-zinc-600"
+        required={required}
+      />
     </div>
   );
 }

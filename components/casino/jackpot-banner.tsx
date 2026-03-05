@@ -1,57 +1,63 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Sparkles } from "lucide-react";
 
 export function JackpotBanner() {
-  const [jackpotValue, setJackpotValue] = useState(100357346.27)
+  const [jackpotValue, setJackpotValue] = useState(100_357_346.27);
 
+  // Incremento suave do jackpot
   useEffect(() => {
     const interval = setInterval(() => {
-      setJackpotValue((prev) => prev + Math.random() * 100)
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [])
+      setJackpotValue((prev) => prev + Math.random() * 150);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const formattedValue = jackpotValue.toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
+  });
 
   return (
-    <div className="relative w-full rounded-xl overflow-hidden">
-      {/* Background image */}
-      <div className="relative w-full aspect-[3.5/1] min-h-[160px]">
+    <div className="relative w-full rounded-2xl overflow-hidden shadow-xl">
+      {/* Fundo animado */}
+      <div className="relative w-full aspect-[3.5/1] min-h-[180px]">
         <Image
           src="/jackpot-banner.jpg"
           alt="Jackpot WLbet"
           fill
-          className="object-cover"
+          className="object-cover brightness-90"
           priority
         />
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d]/80 via-transparent to-[#0d0d0d]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d]/90 via-transparent to-[#0d0d0d]/30 animate-pulse" />
 
-        {/* Content overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {/* JACKPOT text */}
-          <div className="relative mb-2">
-            <h2 className="text-3xl md:text-5xl font-extrabold tracking-wider text-gold jackpot-glow">
-              JACKPOT
-            </h2>
-            {/* Decorative lines */}
-            <div className="absolute -left-8 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-gold" />
-            <div className="absolute -right-8 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-gold" />
-          </div>
+        {/* Conteúdo */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+          {/* Texto JACKPOT com glow */}
+          <h2 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gold tracking-widest text-center drop-shadow-[0_0_12px_rgba(255,215,0,0.8)] animate-pulse">
+            JACKPOT
+            {/* Efeito de luz lateral */}
+            <span className="absolute -left-8 top-1/2 w-12 h-1 bg-gold rounded-full -translate-y-1/2 animate-ping" />
+            <span className="absolute -right-8 top-1/2 w-12 h-1 bg-gold rounded-full -translate-y-1/2 animate-ping" />
+          </h2>
 
-          {/* Value */}
-          <div className="bg-casino-red/90 backdrop-blur-sm rounded-lg px-6 py-2 md:px-10 md:py-3 border border-casino-red">
-            <p className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-foreground tracking-wide tabular-nums">
-              {formattedValue}
+          {/* Valor do Jackpot */}
+          <div className="mt-4 md:mt-6 bg-gradient-to-r from-[#ff4d4d]/80 to-[#ff1a1a]/70 backdrop-blur-sm border border-red-600 rounded-xl px-6 py-3 md:px-10 md:py-4 flex items-center gap-3 shadow-lg animate-[pulse_2s_infinite]">
+            <Sparkles className="w-6 h-6 text-yellow-400 animate-bounce" />
+            <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-wide tabular-nums">
+              R$ {formattedValue}
             </p>
           </div>
+
+          {/* Botão CTA */}
+          <button className="mt-4 md:mt-6 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold px-6 md:px-8 py-2 md:py-3 rounded-full shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
+            JOGAR AGORA
+            <Sparkles className="w-5 h-5 animate-spin-slow text-yellow-300" />
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
